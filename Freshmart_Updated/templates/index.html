@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FreshMart Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <h1>FreshMart Inventory Management</h1>
+    <div>
+        <input type="text" id="name" placeholder="Product Name">
+        <input type="number" id="quantity" placeholder="Quantity">
+        <input type="number" id="price" placeholder="Price per Unit">
+        <button onclick="addProduct()">Add Product</button>
+    </div>
+    <h2>Product List</h2>
+    <table id="productsTable">
+        <thead>
+            <tr><th>Name</th><th>Quantity</th><th>Price</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <h2>Low Stock Products</h2>
+    <ul id="lowStockList"></ul>
+</div>
+<script>
+    function loadProducts() {
+        fetch('/products')
+        .then(response => response.json())
+        .then(data => {
+            const table = document.getElementById('productsTable').querySelector('tbody');
+            table.innerHTML = '';
+            data.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.name}</td>
+                    <td class="${product.quantity < 5 ? 'low-stock' : ''}">${product.quantity}</td>
+                    <td>${product.price_per_unit}</td>
+                    <td>
+                        <button onclick="deleteProduct(${product.id})">Delete</button>
+                    </td>`;
+                table.appendChild(row);
+            });
+        });
+    }
+
+    function loadLowStock() {
+        fetch('/products/low-stock')
+        .then(response => response.json())
+        .then(data => {
+            const list = document.getElementById('lowStockList');
+            list.innerHTML = '';
+            data.forEach(product => {
+                const item = document.createElement('li');
+                item.textContent = `${product.name} (Qty: ${product.quantity})`;
+                list.appendChild(item);
+            });
+        });
+    }
+
+    function addProduct() {
+        const name = document.getElementById('name').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const price = parseFloat(document.getElementById('price').value);
+        fetch('/products', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name, quantity, price_per_unit: price })
+        }).then(() => {
+            loadProducts();
+            loadLowStock();
+        });
+    }
+
+    function deleteProduct(id) {
+        fetch(`/products/${id}`, { method: 'DELETE' })
+        .then(() => {
+            loadProducts();
+            loadLowStock();
+        });
+    }
+
+    loadProducts();
+    loadLowStock();
+</script>
+</body>
+</html>
